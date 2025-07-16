@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADSP 퀴즈 게임</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom font for a clean look */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;700&display=swap');
+        body {
+            font-family: 'Noto Sans KR', 'Inter', sans-serif;
+            background-color: #f0f2f5; /* Light gray background */
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div id="quiz-container" class="bg-white p-8 rounded-2xl shadow-xl max-w-2xl w-full mx-auto border border-gray-200">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">ADSP 퀴즈 게임</h1>
+
+        <!-- Score and Question Counter -->
+        <div class="flex justify-between items-center mb-6 text-gray-600 text-lg font-medium">
+            <span id="score-display">점수: 0</span>
+            <span id="question-counter">문제: 0/0</span>
+        </div>
+
+        <!-- Question Display Area -->
+        <div id="question-display" class="bg-blue-50 p-6 rounded-xl mb-6 text-xl font-semibold text-gray-900 leading-relaxed border border-blue-200">
+            문제 내용이 여기에 표시됩니다.
+        </div>
+
+        <!-- Options Container -->
+        <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <!-- Option buttons will be dynamically inserted here -->
+        </div>
+
+        <!-- Feedback and Explanation Area -->
+        <div id="feedback-area" class="mt-6 p-4 rounded-xl hidden">
+            <p id="feedback-message" class="font-bold text-lg mb-2"></p>
+            <p id="explanation-text" class="text-gray-700 text-base leading-relaxed"></p>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="flex justify-between mt-8">
+            <button id="restart-button" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-xl shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">
+                처음부터 다시
+            </button>
+            <button id="next-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50">
+                다음 문제
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Quiz data based on the provided ADSP summary notes
+        const quizzes = [
+            {
+                question: "다음 중 '데이터'에 대한 설명으로 가장 적절한 것은?",
+                options: [
+                    "가공되지 않은 객관적 사실",
+                    "가공된 자료를 통해 얻어진 의미 있는 내용",
+                    "개인에게 내재되어 겉으로 드러나지 않는 지식",
+                    "문서, 매뉴얼 등으로 형상화된 지식"
+                ],
+                answer: "가공되지 않은 객관적 사실",
+                explanation: "데이터는 객관적 사실이며, 가공되지 않은 상태를 의미합니다. 정보는 가공된 자료입니다."
+            },
+            {
+                question: "다음 중 '반정형 데이터'의 예시로 가장 적절한 것은?",
+                options: [
+                    "관계형 데이터베이스",
+                    "SNS 글",
+                    "XML, JSON 문서",
+                    "동영상"
+                ],
+                answer: "XML, JSON 문서",
+                explanation: "반정형 데이터는 XML, JSON처럼 형태는 있으나 메타데이터가 포함된 데이터입니다. 관계형 데이터베이스는 정형 데이터, SNS 글과 동영상은 비정형 데이터입니다."
+            },
+            {
+                question: "SECI 모델 중 '요리사가 자신의 맛있는 레시피를 책이나 블로그로 작성하는 과정'에 해당하는 것은?",
+                options: [
+                    "공동화 (Socialization)",
+                    "표출화 (Externalization)",
+                    "연결화 (Combination)",
+                    "내면화 (Internalization)"
+                ],
+                answer: "표출화 (Externalization)",
+                explanation: "표출화는 암묵지를 형식지로 전환하는 과정입니다. 요리사의 레시피(암묵지)를 책/블로그(형식지)로 만드는 것이 이에 해당합니다."
+            },
+            {
+                question: "DIKW 피라미드의 최종 목표는 다음 중 어느 단계에 도달하는 것인가요?",
+                options: [
+                    "데이터",
+                    "정보",
+                    "지식",
+                    "지혜"
+                ],
+                answer: "지혜",
+                explanation: "DIKW 피라미드는 데이터 → 정보 → 지식 → 지혜의 순서로 발전하며, 빅데이터 분석의 최종 목표는 '지혜' 단계에 도달하는 것입니다."
+            },
+            {
+                question: "데이터 용량 단위 중 '페타바이트(PB)' 다음으로 큰 단위는 무엇인가요?",
+                options: [
+                    "테라바이트(TB)",
+                    "엑사바이트(EB)",
+                    "제타바이트(ZB)",
+                    "요타바이트(YB)"
+                ],
+                answer: "엑사바이트(EB)",
+                explanation: "데이터 용량 단위는 TB → PB → EB → ZB → YB 순서입니다. 암기법 '패고 싶어요 폐지요'를 떠올려 보세요."
+            },
+            {
+                question: "다음 중 데이터베이스의 특징에 해당하지 않는 것은?",
+                options: [
+                    "공용(Shared) 데이터",
+                    "중복을 허용하는 데이터",
+                    "저장(Stored) 데이터",
+                    "변화(Changed) 데이터"
+                ],
+                answer: "중복을 허용하는 데이터",
+                explanation: "데이터베이스는 중복이 최소화된 '통합(Integrated) 데이터'를 특징으로 합니다. '중복을 허용한다'는 오답입니다."
+            },
+            {
+                question: "기업에서 고객과의 관계 관리를 위해 활용하는 데이터베이스 시스템은 무엇인가요?",
+                options: [
+                    "SCM",
+                    "ERP",
+                    "CRM",
+                    "BI"
+                ],
+                answer: "CRM",
+                explanation: "CRM(Customer Relationship Management)은 고객 관계 관리를 위한 시스템입니다. SCM은 공급망 관리, ERP는 기업 자원 관리, BI는 비즈니스 인텔리전스입니다."
+            },
+            {
+                question: "가트너가 정의한 빅데이터의 3가지 V에 해당하지 않는 것은?",
+                options: [
+                    "규모(Volume)",
+                    "다양성(Variety)",
+                    "속도(Velocity)",
+                    "가치(Value)"
+                ],
+                answer: "가치(Value)",
+                explanation: "가트너가 정의한 빅데이터의 3V는 규모(Volume), 다양성(Variety), 속도(Velocity)입니다. 가치(Value)는 3V 이후에 추가된 개념 중 하나입니다."
+            },
+            {
+                question: "빅데이터가 만드는 변화 중 '표본조사'에서 '전수조사'로의 변화를 의미하는 것은?",
+                options: [
+                    "전수조사",
+                    "사후처리",
+                    "양",
+                    "상관관계"
+                ],
+                answer: "전수조사",
+                explanation: "빅데이터는 기존의 표본조사 방식에서 전체 데이터를 다루는 전수조사 방식으로의 변화를 가능하게 합니다. 이는 '전후양상' 중 '전수조사'에 해당합니다."
+            },
+            {
+                question: "분석 기획 방안 중 '당면한 문제의 빠른 해결'을 목표로 하는 접근법은?",
+                options: [
+                    "장기적 마스터 플랜",
+                    "과제 중심 접근",
+                    "디자인 싱킹",
+                    "상향식 접근 방법"
+                ],
+                answer: "과제 중심 접근",
+                explanation: "과제 중심 접근은 당면한 문제의 빠른 해결(스피드, 퀵)을 목표로 합니다. 장기적 마스터 플랜은 지속적인 원인 분석을 통해 정확성을 높이고 긴 기간을 가집니다."
+            },
+            {
+                question: "데이터 마이닝 방법론 중 '비즈니스 이해 → 데이터 이해 → 데이터 준비 → 모델링 → 평가 → 배포' 순서로 진행되는 것은?",
+                options: [
+                    "KDD",
+                    "CRISP-DM",
+                    "폭포수 모델",
+                    "애자일 기법"
+                ],
+                answer: "CRISP-DM",
+                explanation: "CRISP-DM은 '업데데이트 모델 평가전'으로 암기할 수 있는 순서(비즈니스 이해, 데이터 이해, 데이터 준비, 모델링, 평가, 배포)를 가집니다."
+            },
+            {
+                question: "다음 중 '정답(레이블)이 없는 데이터를 학습'하는 분석 방법은?",
+                options: [
+                    "지도 학습",
+                    "비지도 학습",
+                    "회귀 분석",
+                    "분류 분석"
+                ],
+                answer: "비지도 학습",
+                explanation: "비지도 학습은 정답(레이블)이 없는 데이터를 학습하여 패턴이나 구조를 발견하는 방법입니다. 군집 분석, 차원 축소 등이 비지도 학습에 해당합니다."
+            },
+            {
+                question: "분석 과제 고려 요소 중 '모델과 실제값의 차이'를 의미하며, '정밀도'와 트레이드오프 관계에 있는 것은?",
+                options: [
+                    "데이터 크기",
+                    "분석 복잡도",
+                    "정확도",
+                    "데이터 복잡도"
+                ],
+                answer: "정확도",
+                explanation: "분석 과제에서의 정확도는 모델과 실제값의 차이를 의미하며, 정밀도(모델 반복 시 동일한 값이 나오는 안정성)와 트레이드오프 관계에 있을 수 있습니다."
+            },
+            {
+                question: "기업이 분석할 준비가 어느 정도 됐는지 평가하는 지표로, IT 인프라, 분석 역량, 데이터, 문화, 기술, 인력의 6가지로 구분되는 것은?",
+                options: [
+                    "분석 성숙도",
+                    "분석 거버넌스",
+                    "분석 준비도",
+                    "분석 마스터 플랜"
+                ],
+                answer: "분석 준비도",
+                explanation: "분석 준비도는 기업이 분석을 수행할 준비 상태를 평가하며, IT 인프라, 분석 역량, 데이터, 문화, 기술, 인력의 6가지 영역으로 구분됩니다."
+            },
+            {
+                question: "조직 및 인력 방안 중 '독립적인 분석 부서를 생성'하는 형태로, 현업 부서의 중복 업무 가능성이 있는 구조는?",
+                options: [
+                    "집중 구조",
+                    "기능 구조",
+                    "분산 구조",
+                    "매트릭스 구조"
+                ],
+                answer: "집중 구조",
+                explanation: "집중 구조는 독립적인 분석 부서를 생성하여 분석 업무를 전담하게 하는 방식입니다. 기능 구조는 현업 부서가 직접 분석, 분산 구조는 분석 조직 구성원을 현업 부서에 파견하는 방식입니다."
+            },
+            {
+                question: "탐색적 자료 분석(EDA)의 네 가지 주제 중 하나로, 데이터가 존재하지 않는 경우(Null, NA)를 다루는 것은?",
+                options: [
+                    "이상치 처리",
+                    "변수 변환",
+                    "차원 축소",
+                    "결측값 처리"
+                ],
+                answer: "결측값 처리",
+                explanation: "EDA의 네 가지 주제는 결측값 처리, 이상치 처리, 변수 변환, 차원 축소입니다. 결측값 처리는 데이터가 없는 경우를 다룹니다."
+            },
+            {
+                question: "이상값(Outlier) 판단 방법 중, 데이터가 정규분포를 따른다고 가정하고 표준편차의 3배 이상 벗어나는 값을 이상값으로 판단하는 방법은?",
+                options: [
+                    "IQR 방법",
+                    "ESD (Extreme Studentized Deviate) 방법",
+                    "사분위수 방법",
+                    "중앙값 기반 방법"
+                ],
+                answer: "ESD (Extreme Studentized Deviate) 방법",
+                explanation: "ESD 방법은 데이터가 정규분포를 따른다고 가정하고 표준편차의 3배 이상 벗어나는 값을 이상값으로 판단합니다. IQR 방법은 사분위수를 활용합니다."
+            },
+            {
+                question: "표본 추출 방법 중, 여러 군집으로 나눈 후 '군집을 선택하여 추출'하며, 군집 내 이질적, 군집 간 동질적인 특성을 가지는 것은?",
+                options: [
+                    "랜덤 추출법",
+                    "계통 추출법",
+                    "집락 추출법",
+                    "층화 추출법"
+                ],
+                answer: "집락 추출법",
+                explanation: "집락 추출법은 군집을 선택하여 추출하며, 군집 내 이질적, 군집 간 동질적인 특성을 가집니다. 층화 추출법은 동질적인 층에서 비례적으로 추출하며 군집 내 동질적, 군집 간 이질적입니다."
+            },
+            {
+                question: "자료의 척도 중 '절대 0점'이 존재하며 덧셈, 뺄셈, 곱셈, 나눗셈 등 '사칙연산 모두 가능'한 것은?",
+                options: [
+                    "명목 척도",
+                    "서열 척도",
+                    "등간 척도",
+                    "비율 척도"
+                ],
+                answer: "비율 척도",
+                explanation: "비율 척도는 절대 0점이 존재하며 사칙연산 모두 가능합니다 (예: 무게, 나이). 등간 척도는 구간 간격이 일정하며 덧셈, 뺄셈만 가능합니다 (예: 온도)."
+            },
+            {
+                question: "두 확률 변수의 상관 관계 방향을 나타내지만, 최소/최댓값이 없어 강도 판단이 불가능한 기초 통계량은 무엇인가요?",
+                options: [
+                    "상관 계수",
+                    "공분산",
+                    "첨도",
+                    "왜도"
+                ],
+                answer: "공분산",
+                explanation: "공분산은 두 확률 변수의 상관 관계 방향을 나타내지만, 강도 판단은 불가능합니다. 상관 계수는 -1에서 1 사이의 값을 가지며 강도 판단이 가능합니다."
+            },
+            {
+                question: "모집단 분포에 상관없이 표본의 크기가 충분히 크면 표본 평균의 분포는 정규 분포를 따른다는 이론은?",
+                options: [
+                    "대수의 법칙",
+                    "중심 극한 정리",
+                    "베르누이 정리",
+                    "포아송 분포"
+                ],
+                answer: "중심 극한 정리",
+                explanation: "중심 극한 정리는 모집단 분포와 상관없이 표본의 크기가 충분히 크면 표본 평균의 분포가 정규 분포를 따른다는 중요한 통계 이론입니다."
+            },
+            {
+                question: "가설 검정에서 '귀무 가설이 사실인데 잘못 기각하는 오류'를 무엇이라고 하는가요?",
+                options: [
+                    "2종 오류",
+                    "유의 수준",
+                    "1종 오류",
+                    "유의 확률"
+                ],
+                answer: "1종 오류",
+                explanation: "1종 오류는 귀무 가설이 사실인데 잘못 기각하는 오류입니다. 2종 오류는 귀무 가설이 거짓인데 잘못 채택하는 오류입니다."
+            },
+            {
+                question: "회귀 분석 가정 중 '잔차의 분산이 일정'해야 한다는 가정은 무엇인가요?",
+                options: [
+                    "선형성",
+                    "독립성",
+                    "등분산성",
+                    "정규성"
+                ],
+                answer: "등분산성",
+                explanation: "회귀 분석의 4가지 가정은 선형성, 독립성, 등분산성, 정규성입니다. 등분산성은 잔차의 분산이 일정해야 함을 의미합니다."
+            },
+            {
+                question: "다변량 분석 기법 중 '차원 축소'에 가장 많이 활용되며, 여러 변수를 합쳐 차원을 줄이는 기법은?",
+                options: [
+                    "상관 분석",
+                    "다중 공선성",
+                    "다차원 척도법 (MDS)",
+                    "주성분 분석 (PCA)"
+                ],
+                answer: "주성분 분석 (PCA)",
+                explanation: "주성분 분석(PCA)은 차원 축소 기법으로 가장 많이 활용됩니다. 여러 변수를 합쳐 데이터의 차원을 줄이면서 정보 손실을 최소화합니다."
+            },
+            {
+                question: "시계열 예측 모형 중 '자기 자신의 과거 값으로 현재를 결정'하는 모형은 무엇인가요?",
+                options: [
+                    "MA (Moving Average) 모형",
+                    "AR (AutoRegressive) 모형",
+                    "ARIMA 모형",
+                    "백색 잡음"
+                ],
+                answer: "AR (AutoRegressive) 모형",
+                explanation: "AR (AutoRegressive) 모형은 자기 자신의 과거 값에 의존하여 현재 값을 예측합니다. MA 모형은 백색 잡음의 선형 결합으로 표현됩니다."
+            },
+            {
+                question: "모델이 지나치게 데이터를 학습하여 복잡해지는 현상으로, '라면이 너무 익은' 것에 비유되는 것은?",
+                options: [
+                    "과소적합 (Underfitting)",
+                    "과대적합 (Overfitting)",
+                    "데이터 분할",
+                    "규제 (Regularization)"
+                ],
+                answer: "과대적합 (Overfitting)",
+                explanation: "과대적합은 모델이 훈련 데이터에 지나치게 맞춰져 새로운 데이터에 대한 예측 성능이 떨어지는 현상입니다. 라면이 너무 익어 맛이 없는 것에 비유할 수 있습니다."
+            },
+            {
+                question: "분류 분석에서 여러 예측 모형을 조합하여 성능을 향상시키는 기법을 총칭하는 용어는?",
+                options: [
+                    "로지스틱 회귀 분석",
+                    "의사 결정 트리",
+                    "앙상블 (Ensemble)",
+                    "인공 신경망 (ANN)"
+                ],
+                answer: "앙상블 (Ensemble)",
+                explanation: "앙상블은 여러 개의 예측 모형을 조합하여 단일 모형보다 더 나은 성능을 얻는 기법입니다. 보팅, 배깅, 부스팅 등이 이에 해당합니다."
+            },
+            {
+                question: "군집 분석 평가 지표 중 -1에서 1 사이의 값을 가지며, 1에 가까울수록 군집 성능이 좋다고 판단하는 것은?",
+                options: [
+                    "유클리드 거리",
+                    "자카드 유사도",
+                    "실루엣 계수 (Silhouette Coefficient)",
+                    "코사인 유사도"
+                ],
+                answer: "실루엣 계수 (Silhouette Coefficient)",
+                explanation: "실루엣 계수는 군집 분석의 성능을 평가하는 지표로, 값이 1에 가까울수록 군집이 잘 형성되었다고 판단합니다."
+            },
+            {
+                question: "밀도 기반 군집화 방법으로, 군집 개수를 미리 지정할 필요가 없으며 노이즈/이상치에 강한 특징을 가진 군집 분석 기법은?",
+                options: [
+                    "K-평균 군집 (K-Means Clustering)",
+                    "계층적 군집 분석 (Hierarchical Clustering)",
+                    "DBSCAN (Density-Based Spatial Clustering of Applications with Noise)",
+                    "자기 조직화 지도 (SOM)"
+                ],
+                answer: "DBSCAN (Density-Based Spatial Clustering of Applications with Noise)",
+                explanation: "DBSCAN은 밀도 기반 군집화 방법으로, 군집 개수를 미리 지정할 필요가 없고 노이즈에 강한 장점이 있습니다."
+            },
+            {
+                question: "연관 분석 지표 중 '두 품목이 동시에 포함된 거래 비율'을 의미하는 것은?",
+                options: [
+                    "신뢰도 (Confidence)",
+                    "향상도 (Lift)",
+                    "지지도 (Support)",
+                    "연관성 (Association)"
+                ],
+                answer: "지지도 (Support)",
+                explanation: "지지도(Support)는 전체 거래 중 두 품목(A와 B)이 동시에 포함된 거래의 비율을 나타냅니다. 신뢰도는 A가 있을 때 B가 나타날 확률, 향상도는 두 품목의 상관성을 나타냅니다."
+            }
+        ];
+
+        let currentQuizIndex = 0;
+        let score = 0;
+        let quizOrder = []; // To store shuffled quiz indices
+        let answered = false; // To prevent multiple answers per question
+
+        const questionDisplay = document.getElementById('question-display');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackArea = document.getElementById('feedback-area');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const explanationText = document.getElementById('explanation-text');
+        const nextButton = document.getElementById('next-button');
+        const restartButton = document.getElementById('restart-button');
+        const scoreDisplay = document.getElementById('score-display');
+        const questionCounter = document.getElementById('question-counter');
+
+        /**
+         * Shuffles an array using the Fisher-Yates (Knuth) shuffle algorithm.
+         * @param {Array} array The array to shuffle.
+         * @returns {Array} The shuffled array.
+         */
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]]; // Swap elements
+            }
+            return array;
+        }
+
+        /**
+         * Initializes the quiz game.
+         * Shuffles the quiz order and displays the first question.
+         */
+        function initializeQuiz() {
+            score = 0;
+            currentQuizIndex = 0;
+            // Create an array of indices and shuffle it
+            quizOrder = Array.from({ length: quizzes.length }, (_, i) => i);
+            shuffleArray(quizOrder);
+            updateScoreAndCounter();
+            displayQuestion();
+            feedbackArea.classList.add('hidden'); // Hide feedback area initially
+            nextButton.textContent = '다음 문제'; // Reset button text
+            nextButton.disabled = true; // Disable next button until answered
+        }
+
+        /**
+         * Displays the current question and its options.
+         */
+        function displayQuestion() {
+            answered = false;
+            nextButton.disabled = true; // Disable next button
+            feedbackArea.classList.add('hidden'); // Hide feedback area
+
+            if (currentQuizIndex >= quizzes.length) {
+                showQuizEndScreen();
+                return;
+            }
+
+            const currentQuiz = quizzes[quizOrder[currentQuizIndex]];
+            questionDisplay.textContent = currentQuiz.question;
+            optionsContainer.innerHTML = ''; // Clear previous options
+
+            // Shuffle options for each question
+            const shuffledOptions = shuffleArray([...currentQuiz.options]);
+
+            shuffledOptions.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.classList.add(
+                    'option-button',
+                    'w-full', 'py-3', 'px-4', 'bg-gray-100', 'hover:bg-blue-100',
+                    'text-left', 'rounded-xl', 'shadow-sm', 'transition', 'duration-200',
+                    'ease-in-out', 'transform', 'hover:scale-105', 'focus:outline-none',
+                    'focus:ring-2', 'focus:ring-blue-300', 'focus:ring-opacity-50',
+                    'text-gray-800', 'font-medium'
+                );
+                button.addEventListener('click', () => handleAnswer(option, currentQuiz.answer, currentQuiz.explanation));
+                optionsContainer.appendChild(button);
+            });
+            updateScoreAndCounter();
+        }
+
+        /**
+         * Handles the user's answer selection.
+         * @param {string} selectedOption The option selected by the user.
+         * @param {string} correctAnswer The correct answer for the current question.
+         * @param {string} explanation The explanation for the answer.
+         */
+        function handleAnswer(selectedOption, correctAnswer, explanation) {
+            if (answered) return; // Prevent multiple clicks
+            answered = true;
+            nextButton.disabled = false; // Enable next button
+
+            const optionButtons = document.querySelectorAll('.option-button');
+            optionButtons.forEach(button => {
+                button.disabled = true; // Disable all buttons after an answer is chosen
+                if (button.textContent === correctAnswer) {
+                    button.classList.remove('bg-gray-100', 'hover:bg-blue-100');
+                    button.classList.add('bg-green-200', 'border-green-400'); // Highlight correct answer
+                } else if (button.textContent === selectedOption) {
+                    button.classList.remove('bg-gray-100', 'hover:bg-blue-100');
+                    button.classList.add('bg-red-200', 'border-red-400'); // Highlight incorrect answer
+                }
+            });
+
+            feedbackArea.classList.remove('hidden');
+            if (selectedOption === correctAnswer) {
+                score++;
+                feedbackMessage.textContent = '정답입니다! 🎉';
+                feedbackMessage.classList.remove('text-red-600');
+                feedbackMessage.classList.add('text-green-600');
+                feedbackArea.classList.remove('bg-red-50');
+                feedbackArea.classList.add('bg-green-50', 'border', 'border-green-200');
+            } else {
+                feedbackMessage.textContent = '오답입니다. 😔';
+                feedbackMessage.classList.remove('text-green-600');
+                feedbackMessage.classList.add('text-red-600');
+                feedbackArea.classList.remove('bg-green-50');
+                feedbackArea.classList.add('bg-red-50', 'border', 'border-red-200');
+            }
+            explanationText.textContent = explanation;
+            updateScoreAndCounter();
+        }
+
+        /**
+         * Updates the score and question counter display.
+         */
+        function updateScoreAndCounter() {
+            scoreDisplay.textContent = `점수: ${score}`;
+            questionCounter.textContent = `문제: ${currentQuizIndex + 1}/${quizzes.length}`;
+            if (currentQuizIndex >= quizzes.length) {
+                questionCounter.textContent = `문제: ${quizzes.length}/${quizzes.length}`; // Ensure it shows total on final screen
+            }
+        }
+
+        /**
+         * Shows the final quiz results screen.
+         */
+        function showQuizEndScreen() {
+            questionDisplay.textContent = `퀴즈가 종료되었습니다! 총 ${quizzes.length}문제 중 ${score}문제를 맞히셨습니다.`;
+            questionDisplay.classList.add('text-center', 'text-blue-700');
+            optionsContainer.innerHTML = ''; // Clear options
+            feedbackArea.classList.add('hidden'); // Hide feedback
+            nextButton.style.display = 'none'; // Hide next button
+            restartButton.style.display = 'block'; // Show restart button
+            restartButton.classList.add('mx-auto'); // Center restart button
+        }
+
+        // Event Listeners
+        nextButton.addEventListener('click', () => {
+            currentQuizIndex++;
+            displayQuestion();
+        });
+
+        restartButton.addEventListener('click', () => {
+            restartButton.style.display = 'none'; // Hide restart button
+            nextButton.style.display = 'block'; // Show next button
+            questionDisplay.classList.remove('text-center', 'text-blue-700'); // Reset text alignment
+            initializeQuiz();
+        });
+
+        // Start the quiz when the page loads
+        document.addEventListener('DOMContentLoaded', initializeQuiz);
+    </script>
+</body>
+</html>
